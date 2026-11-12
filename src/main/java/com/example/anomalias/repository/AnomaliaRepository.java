@@ -1,4 +1,7 @@
 package com.example.anomalias.repository;
 
-public class AnomaliaRepository {
+import com.example.anomalias.entity.Anomalia;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface AnomaliaRepository extends JpaRepository<Anomalia, Long> {
 }
