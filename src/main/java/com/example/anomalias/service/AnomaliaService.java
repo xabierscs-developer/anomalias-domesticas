@@ -4,6 +4,7 @@ import com.example.anomalias.dto.response.AnomaliaResponse;
 import com.example.anomalias.dto.response.ViviendaResponse;
 import com.example.anomalias.entity.Anomalia;
 import com.example.anomalias.entity.Vivienda;
+import com.example.anomalias.exception.RecursoNoEncontradoException;
 import com.example.anomalias.repository.AnomaliaRepository;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,7 @@ public class AnomaliaService {
     @Transactional(readOnly = true)
     public AnomaliaResponse findById(Long id) {
         Anomalia anomalia = anomaliaRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Anomalia not found with id: " + id));
+            .orElseThrow(() -> new RecursoNoEncontradoException("Anomalia not found with id: " + id));
         return toResponse(anomalia);
     }
 
