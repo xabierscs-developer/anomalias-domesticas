@@ -1,0 +1,1012 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "API de Anomalías Domésticas",
+        "version": "0.0.1",
+        "description": "Contrato propuesto para la práctica. Los endpoints de negocio están pendientes de implementación. Usa los ejemplos del SQL inicial para comenzar; las respuestas documentadas son el comportamiento esperado, no respuestas simuladas. Todas las fechas sin zona se interpretan en UTC."
+    },
+    "servers": [
+        { "url": "/", "description": "Servidor que sirve esta documentación" }
+    ],
+    "tags": [
+        {
+            "name": "Viviendas",
+            "description": "Los domicilios donde lo imposible se ha instalado."
+        },
+        {
+            "name": "Anomalías",
+            "description": "Registro, filtros, paginación e historial de fenómenos."
+        },
+        {
+            "name": "Especialistas",
+            "description": "Consulta de disciplinas, autorización y disponibilidad."
+        },
+        {
+            "name": "Intervenciones",
+            "description": "Operaciones de negocio: iniciar y cerrar una intervención."
+        },
+        {
+            "name": "Guardia",
+            "description": "Algoritmo de prioridades y reparto de trabajo, sin escrituras."
+        },
+        { "name": "Resumen", "description": "Situación actual de la ciudad." }
+    ],
+    "paths": {
+        "/api/viviendas": {
+            "get": {
+                "tags": ["Viviendas"],
+                "operationId": "listarViviendas",
+                "summary": "Listar viviendas",
+                "responses": {
+                    "200": {
+                        "description": "Viviendas registradas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ViviendaResponse"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": ["Viviendas"],
+                "operationId": "crearVivienda",
+                "summary": "Registrar una vivienda",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CrearViviendaRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Vivienda creada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ViviendaResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": { "$ref": "#/components/responses/EntradaInvalida" }
+                }
+            }
+        },
+        "/api/viviendas/{id}": {
+            "parameters": [{ "$ref": "#/components/parameters/Id" }],
+            "get": {
+                "tags": ["Viviendas"],
+                "operationId": "consultarVivienda",
+                "summary": "Consultar una vivienda",
+                "responses": {
+                    "200": {
+                        "description": "Detalle de la vivienda",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ViviendaResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": { "$ref": "#/components/responses/EntradaInvalida" },
+                    "404": { "$ref": "#/components/responses/NoEncontrado" }
+                }
+            }
+        },
+        "/api/viviendas/{id}/anomalias": {
+            "parameters": [{ "$ref": "#/components/parameters/Id" }],
+            "get": {
+                "tags": ["Viviendas"],
+                "operationId": "listarAnomaliasVivienda",
+                "summary": "Listar anomalías de una vivienda",
+                "description": "Devuelve una lista vacía si la vivienda existe pero no tiene anomalías; 404 si no existe.",
+                "responses": {
+                    "200": {
+                        "description": "Anomalías de la vivienda",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/AnomaliaResponse"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": { "$ref": "#/components/responses/EntradaInvalida" },
+                    "404": { "$ref": "#/components/responses/NoEncontrado" }
+                }
+            }
+        },
+        "/api/especialistas": {
+            "get": {
+                "tags": ["Especialistas"],
+                "operationId": "listarEspecialistas",
+                "summary": "Listar especialistas",
+                "parameters": [
+                    {
+                        "name": "disciplina",
+                        "in": "query",
+                        "required": false,
+                        "schema": { "$ref": "#/components/schemas/Disciplina" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Especialistas registrados, incluidos los inactivos",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/EspecialistaResponse"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": { "$ref": "#/components/responses/EntradaInvalida" }
+                }
+            }
+        },
+        "/api/especialistas/disponibles": {
+            "get": {
+                "tags": ["Especialistas"],
+                "operationId": "listarEspecialistasDisponibles",
+                "summary": "Buscar especialistas compatibles y libres",
+                "description": "Solo activos, con la misma disciplina, autorización suficiente y sin intervención abierta. Para la anomalía inicial 1 solo es candidata la especialista 1. La consulta no inicia una intervención.",
+                "parameters": [
+                    {
+                        "name": "anomaliaId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64",
+                            "minimum": 1
+                        },
+                        "example": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Candidatos; lista vacía si no hay ninguno",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/EspecialistaResponse"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": { "$ref": "#/components/responses/EntradaInvalida" },
+                    "404": { "$ref": "#/components/responses/NoEncontrado" }
+                }
+            }
+        },
+        "/api/anomalias": {
+            "get": {
+                "tags": ["Anomalías"],
+                "operationId": "listarAnomalias",
+                "summary": "Consultar anomalías con filtros y paginación",
+                "description": "Los filtros presentes se combinan con AND antes de paginar. Orden por fechaReporte descendente y, en empate, id descendente. La prioridad es calculada, pero no se usa para ordenar este endpoint.",
+                "parameters": [
+                    {
+                        "name": "estado",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/EstadoAnomalia"
+                        }
+                    },
+                    {
+                        "name": "disciplina",
+                        "in": "query",
+                        "schema": { "$ref": "#/components/schemas/Disciplina" }
+                    },
+                    {
+                        "name": "peligrosidadMinima",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 5
+                        },
+                        "example": 2
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Primera página: 0",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "default": 0
+                        }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 50,
+                            "default": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Página de anomalías",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginaAnomaliasResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": { "$ref": "#/components/responses/EntradaInvalida" }
+                }
+            },
+            "post": {
+                "tags": ["Anomalías"],
+                "operationId": "crearAnomalia",
+                "summary": "Registrar un nuevo fenómeno",
+                "description": "La vivienda debe existir. El servidor asigna estado REPORTADA y fecha actual UTC; no acepta estado, prioridad ni fecha del cliente.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CrearAnomaliaRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Anomalía creada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AnomaliaResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": { "$ref": "#/components/responses/EntradaInvalida" },
+                    "404": { "$ref": "#/components/responses/NoEncontrado" }
+                }
+            }
+        },
+        "/api/anomalias/{id}": {
+            "parameters": [{ "$ref": "#/components/parameters/Id" }],
+            "get": {
+                "tags": ["Anomalías"],
+                "operationId": "consultarAnomalia",
+                "summary": "Consultar detalle y prioridad de una anomalía",
+                "description": "Prioridad de pendientes: peligrosidad × 10 + días completos UTC limitados a 0..7 × 2 + 20 si está DESBORDADA. Para EN_ESTUDIO y CONTENIDA vale 0.",
+                "responses": {
+                    "200": {
+                        "description": "Anomalía y vivienda asociada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AnomaliaResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": { "$ref": "#/components/responses/EntradaInvalida" },
+                    "404": { "$ref": "#/components/responses/NoEncontrado" }
+                }
+            }
+        },
+        "/api/anomalias/{id}/intervenciones": {
+            "parameters": [{ "$ref": "#/components/parameters/Id" }],
+            "get": {
+                "tags": ["Anomalías"],
+                "operationId": "consultarHistorial",
+                "summary": "Consultar el historial de intervenciones",
+                "description": "Ordenado por fechaInicio descendente. Conserva los intentos anteriores aunque la anomalía se atienda de nuevo. Devuelve 404 si la anomalía no existe.",
+                "responses": {
+                    "200": {
+                        "description": "Historial, posiblemente vacío",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/IntervencionResponse"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": { "$ref": "#/components/responses/EntradaInvalida" },
+                    "404": { "$ref": "#/components/responses/NoEncontrado" }
+                }
+            }
+        },
+        "/api/intervenciones": {
+            "post": {
+                "tags": ["Intervenciones"],
+                "operationId": "iniciarIntervencion",
+                "summary": "Iniciar una intervención",
+                "description": "Valida existencia, especialista activo, disciplina, autorización y ausencia de intervenciones abiertas tanto del especialista como de la anomalía. Solo admite REPORTADA o DESBORDADA. Crea la intervención y cambia a EN_ESTUDIO en una única transacción. La asignación 1 → 1 es válida con los datos iniciales.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/IniciarIntervencionRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Intervención abierta; guarda su ID para cerrarla",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IntervencionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": { "$ref": "#/components/responses/EntradaInvalida" },
+                    "404": { "$ref": "#/components/responses/NoEncontrado" },
+                    "409": { "$ref": "#/components/responses/Conflicto" }
+                }
+            }
+        },
+        "/api/intervenciones/{id}/cierre": {
+            "parameters": [{ "$ref": "#/components/parameters/Id" }],
+            "patch": {
+                "tags": ["Intervenciones"],
+                "operationId": "cerrarIntervencion",
+                "summary": "Cerrar una intervención y aplicar sus consecuencias",
+                "description": "Solo una intervención abierta. CONTENIDA: estado CONTENIDA sin cambiar peligrosidad. SIN_CAMBIOS: vuelve a REPORTADA. EMPEORADA: DESBORDADA y peligrosidad +1, máximo 5. El servidor fija la fecha de fin y el especialista queda libre. Repetir el cierre devuelve 409 y no aplica efectos de nuevo. El ID inicial 1 corresponde al pasillo y está abierto.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CerrarIntervencionRequest"
+                            },
+                            "examples": {
+                                "contenida": {
+                                    "summary": "Contener el fenómeno",
+                                    "value": {
+                                        "resultado": "CONTENIDA",
+                                        "informe": "Se estabilizó el pasillo con una cinta métrica anclada a ambos extremos."
+                                    }
+                                },
+                                "sinCambios": {
+                                    "summary": "Intento sin cambios",
+                                    "value": {
+                                        "resultado": "SIN_CAMBIOS",
+                                        "informe": "El pasillo sigue creciendo. Se necesita otra estrategia."
+                                    }
+                                },
+                                "empeorada": {
+                                    "summary": "El intento empeora la anomalía",
+                                    "value": {
+                                        "resultado": "EMPEORADA",
+                                        "informe": "Al medir el pasillo apareció una nueva puerta que conduce al próximo jueves."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Intervención cerrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IntervencionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": { "$ref": "#/components/responses/EntradaInvalida" },
+                    "404": { "$ref": "#/components/responses/NoEncontrado" },
+                    "409": { "$ref": "#/components/responses/Conflicto" }
+                }
+            }
+        },
+        "/api/guardia/propuesta": {
+            "get": {
+                "tags": ["Guardia"],
+                "operationId": "proponerGuardia",
+                "summary": "Calcular un reparto de especialistas sin guardar cambios",
+                "description": "Pendientes sin intervención abierta, ordenadas por prioridad descendente, fecha más antigua e ID menor. Elige especialista activo, compatible, libre y de nivel suficiente más bajo; en empate, ID menor. No repite especialistas. Distingue SIN_ESPECIALISTA_COMPATIBLE de SIN_ESPECIALISTA_LIBRE. Usa un instante UTC común. Es solo una propuesta: iniciar cada intervención vuelve a validar las reglas.",
+                "responses": {
+                    "200": {
+                        "description": "Propuesta calculada; no crea intervenciones ni modifica estados",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PropuestaGuardiaResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/resumen": {
+            "get": {
+                "tags": ["Resumen"],
+                "operationId": "consultarResumen",
+                "summary": "Consultar el resumen de la ciudad",
+                "description": "Cuenta todas las anomalías, cada estado incluso si tiene cero, críticas (peligrosidad 4 o 5 no contenidas) e intervenciones abiertas. El ejemplo corresponde al SQL inicial.",
+                "responses": {
+                    "200": {
+                        "description": "Situación actual",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResumenResponse"
+                                },
+                                "example": {
+                                    "totalAnomalias": 8,
+                                    "porEstado": {
+                                        "REPORTADA": 5,
+                                        "EN_ESTUDIO": 1,
+                                        "CONTENIDA": 1,
+                                        "DESBORDADA": 1
+                                    },
+                                    "anomaliasCriticas": 2,
+                                    "intervencionesAbiertas": 1
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "parameters": {
+            "Id": {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "description": "ID del recurso",
+                "schema": {
+                    "type": "integer",
+                    "format": "int64",
+                    "minimum": 1
+                },
+                "example": 1
+            }
+        },
+        "responses": {
+            "EntradaInvalida": {
+                "description": "Campos, enum, JSON, filtros o paginación inválidos",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorResponse"
+                        },
+                        "example": {
+                            "mensaje": "La petición contiene campos inválidos",
+                            "errores": [
+                                {
+                                    "campo": "peligrosidad",
+                                    "mensaje": "Debe estar entre 1 y 5"
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "NoEncontrado": {
+                "description": "El recurso solicitado o referenciado no existe",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorResponse"
+                        },
+                        "example": {
+                            "mensaje": "No se ha encontrado el recurso solicitado",
+                            "errores": []
+                        }
+                    }
+                }
+            },
+            "Conflicto": {
+                "description": "La operación contradice una regla de negocio",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorResponse"
+                        },
+                        "example": {
+                            "mensaje": "El especialista ya tiene una intervención abierta",
+                            "errores": []
+                        }
+                    }
+                }
+            }
+        },
+        "schemas": {
+            "Disciplina": {
+                "type": "string",
+                "enum": ["TEMPORAL", "ESPACIAL", "REFLEJOS", "SONORA"],
+                "example": "TEMPORAL"
+            },
+            "EstadoAnomalia": {
+                "type": "string",
+                "enum": ["REPORTADA", "EN_ESTUDIO", "CONTENIDA", "DESBORDADA"]
+            },
+            "ResultadoIntervencion": {
+                "type": "string",
+                "enum": ["CONTENIDA", "SIN_CAMBIOS", "EMPEORADA"]
+            },
+            "CrearViviendaRequest": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["direccion", "residente", "emailContacto"],
+                "properties": {
+                    "direccion": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                    },
+                    "residente": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                    },
+                    "emailContacto": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 150
+                    },
+                    "instruccionesAcceso": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "nullable": true
+                    }
+                },
+                "example": {
+                    "direccion": "Calle del Eclipse, 7",
+                    "residente": "Luna Bisagra",
+                    "emailContacto": "luna@example.com",
+                    "instruccionesAcceso": "Entrar antes de que la puerta se quede dormida."
+                }
+            },
+            "CrearAnomaliaRequest": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "viviendaId",
+                    "titulo",
+                    "descripcion",
+                    "disciplina",
+                    "peligrosidad"
+                ],
+                "properties": {
+                    "viviendaId": {
+                        "type": "integer",
+                        "format": "int64",
+                        "minimum": 1
+                    },
+                    "titulo": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 150
+                    },
+                    "descripcion": { "type": "string", "minLength": 1 },
+                    "disciplina": { "$ref": "#/components/schemas/Disciplina" },
+                    "peligrosidad": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 5
+                    }
+                },
+                "example": {
+                    "viviendaId": 1,
+                    "titulo": "El microondas calienta el martes pasado",
+                    "descripcion": "La comida sale fría, pero el residente recuerda haber comido caliente hace una semana.",
+                    "disciplina": "TEMPORAL",
+                    "peligrosidad": 2
+                }
+            },
+            "IniciarIntervencionRequest": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["anomaliaId", "especialistaId"],
+                "properties": {
+                    "anomaliaId": {
+                        "type": "integer",
+                        "format": "int64",
+                        "minimum": 1
+                    },
+                    "especialistaId": {
+                        "type": "integer",
+                        "format": "int64",
+                        "minimum": 1
+                    }
+                },
+                "example": { "anomaliaId": 1, "especialistaId": 1 }
+            },
+            "CerrarIntervencionRequest": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["resultado", "informe"],
+                "properties": {
+                    "resultado": {
+                        "$ref": "#/components/schemas/ResultadoIntervencion"
+                    },
+                    "informe": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1500,
+                        "description": "Obligatorio; no admite solo espacios"
+                    }
+                }
+            },
+            "ViviendaResponse": {
+                "type": "object",
+                "required": ["id", "direccion", "residente", "emailContacto"],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 1
+                    },
+                    "direccion": {
+                        "type": "string",
+                        "example": "Calle del Minuto Extra, 13, 2º B"
+                    },
+                    "residente": {
+                        "type": "string",
+                        "example": "Vera Instante"
+                    },
+                    "emailContacto": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "vera@example.com"
+                    },
+                    "instruccionesAcceso": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": "No usar el timbre: avisa al vecino de ayer."
+                    }
+                }
+            },
+            "AnomaliaResponse": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "vivienda",
+                    "titulo",
+                    "descripcion",
+                    "disciplina",
+                    "peligrosidad",
+                    "estado",
+                    "fechaReporte",
+                    "prioridad"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 1
+                    },
+                    "vivienda": {
+                        "$ref": "#/components/schemas/ViviendaResponse"
+                    },
+                    "titulo": {
+                        "type": "string",
+                        "example": "La nevera imprime recuerdos de mañana"
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "example": "Cada apertura deja un imán con una conversación que aún no ha ocurrido."
+                    },
+                    "disciplina": { "$ref": "#/components/schemas/Disciplina" },
+                    "peligrosidad": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 5,
+                        "example": 3
+                    },
+                    "estado": { "$ref": "#/components/schemas/EstadoAnomalia" },
+                    "fechaReporte": {
+                        "type": "string",
+                        "description": "LocalDateTime en UTC, sin sufijo de zona",
+                        "example": "2026-11-12T10:00:00"
+                    },
+                    "prioridad": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 84,
+                        "description": "Calculada al consultar, no persistida",
+                        "example": 30
+                    }
+                }
+            },
+            "EspecialistaResponse": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "nombre",
+                    "disciplina",
+                    "nivelAutorizacion",
+                    "activo"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 1
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Dra. Hora Vuelta"
+                    },
+                    "disciplina": { "$ref": "#/components/schemas/Disciplina" },
+                    "nivelAutorizacion": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 5,
+                        "example": 4
+                    },
+                    "activo": { "type": "boolean", "example": true }
+                }
+            },
+            "IntervencionResponse": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "anomaliaId",
+                    "especialistaId",
+                    "fechaInicio",
+                    "fechaFin",
+                    "resultado",
+                    "informe"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 4
+                    },
+                    "anomaliaId": {
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 1
+                    },
+                    "especialistaId": {
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 1
+                    },
+                    "fechaInicio": {
+                        "type": "string",
+                        "description": "LocalDateTime UTC",
+                        "example": "2026-11-12T10:30:00"
+                    },
+                    "fechaFin": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "NULL mientras esté abierta; LocalDateTime UTC al cerrar",
+                        "example": null
+                    },
+                    "resultado": {
+                        "type": "string",
+                        "enum": ["CONTENIDA", "SIN_CAMBIOS", "EMPEORADA"],
+                        "nullable": true,
+                        "example": null
+                    },
+                    "informe": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": null
+                    }
+                }
+            },
+            "PaginaAnomaliasResponse": {
+                "type": "object",
+                "required": [
+                    "contenido",
+                    "pagina",
+                    "tamano",
+                    "totalElementos",
+                    "totalPaginas"
+                ],
+                "properties": {
+                    "contenido": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AnomaliaResponse"
+                        }
+                    },
+                    "pagina": { "type": "integer", "minimum": 0, "example": 0 },
+                    "tamano": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 50,
+                        "example": 10
+                    },
+                    "totalElementos": {
+                        "type": "integer",
+                        "format": "int64",
+                        "minimum": 0,
+                        "example": 8
+                    },
+                    "totalPaginas": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "example": 1
+                    }
+                }
+            },
+            "PropuestaGuardiaResponse": {
+                "type": "object",
+                "required": ["asignaciones", "sinAsignar"],
+                "properties": {
+                    "asignaciones": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AsignacionPropuestaResponse"
+                        }
+                    },
+                    "sinAsignar": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AnomaliaSinAsignarResponse"
+                        }
+                    }
+                }
+            },
+            "AsignacionPropuestaResponse": {
+                "type": "object",
+                "required": ["anomaliaId", "prioridad", "especialistaId"],
+                "properties": {
+                    "anomaliaId": {
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 3
+                    },
+                    "prioridad": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 84,
+                        "example": 42
+                    },
+                    "especialistaId": {
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 3
+                    }
+                }
+            },
+            "AnomaliaSinAsignarResponse": {
+                "type": "object",
+                "required": ["anomaliaId", "prioridad", "motivo"],
+                "properties": {
+                    "anomaliaId": {
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 5
+                    },
+                    "prioridad": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 84,
+                        "example": 74
+                    },
+                    "motivo": {
+                        "type": "string",
+                        "enum": [
+                            "SIN_ESPECIALISTA_COMPATIBLE",
+                            "SIN_ESPECIALISTA_LIBRE"
+                        ],
+                        "example": "SIN_ESPECIALISTA_COMPATIBLE"
+                    }
+                }
+            },
+            "ResumenResponse": {
+                "type": "object",
+                "required": [
+                    "totalAnomalias",
+                    "porEstado",
+                    "anomaliasCriticas",
+                    "intervencionesAbiertas"
+                ],
+                "properties": {
+                    "totalAnomalias": {
+                        "type": "integer",
+                        "format": "int64",
+                        "minimum": 0
+                    },
+                    "porEstado": {
+                        "type": "object",
+                        "required": [
+                            "REPORTADA",
+                            "EN_ESTUDIO",
+                            "CONTENIDA",
+                            "DESBORDADA"
+                        ],
+                        "properties": {
+                            "REPORTADA": {
+                                "type": "integer",
+                                "format": "int64",
+                                "minimum": 0
+                            },
+                            "EN_ESTUDIO": {
+                                "type": "integer",
+                                "format": "int64",
+                                "minimum": 0
+                            },
+                            "CONTENIDA": {
+                                "type": "integer",
+                                "format": "int64",
+                                "minimum": 0
+                            },
+                            "DESBORDADA": {
+                                "type": "integer",
+                                "format": "int64",
+                                "minimum": 0
+                            }
+                        }
+                    },
+                    "anomaliasCriticas": {
+                        "type": "integer",
+                        "format": "int64",
+                        "minimum": 0
+                    },
+                    "intervencionesAbiertas": {
+                        "type": "integer",
+                        "format": "int64",
+                        "minimum": 0
+                    }
+                }
+            },
+            "ErrorResponse": {
+                "type": "object",
+                "required": ["mensaje", "errores"],
+                "properties": {
+                    "mensaje": { "type": "string" },
+                    "errores": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ErrorCampoResponse"
+                        }
+                    }
+                }
+            },
+            "ErrorCampoResponse": {
+                "type": "object",
+                "required": ["campo", "mensaje"],
+                "properties": {
+                    "campo": { "type": "string" },
+                    "mensaje": { "type": "string" }
+                }
+            }
+        }
+    }
+}

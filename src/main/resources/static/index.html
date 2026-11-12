@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Peticiones y ejemplos de la API del Departamento de Anomalías Domésticas.">
+    <title>Anomalías Domésticas · API</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui.css">
+    <link rel="stylesheet" href="css/swagger.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui-bundle.js"></script>
+    <script defer src="js/swagger.js"></script>
+</head>
+<body>
+    <header class="page-header">
+        <div class="header-content">
+            <p class="eyebrow">Oficina municipal · Documentación de la API</p>
+            <h1>Departamento de<br><span>Anomalías Domésticas</span></h1>
+            <p class="intro">Si tu pasillo acaba en otra dimensión, esta es la ventanilla correcta.</p>
+            <nav aria-label="Enlaces de documentación">
+                <a class="button" href="#swagger-ui">Explorar peticiones <span aria-hidden="true">↓</span></a>
+                <a class="spec-link" href="guia.html">Cómo funciona el proyecto</a>
+                <a class="spec-link" href="openapi.json" download="anomalias-openapi.json">Descargar OpenAPI</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <aside class="notice" aria-labelledby="notice-title">
+            <div class="notice-icon" aria-hidden="true">!</div>
+            <div>
+                <h2 id="notice-title">Contrato de la práctica · Backend por implementar</h2>
+                <p>Estas peticiones documentan el API que vas a construir. No son endpoints ya resueltos:
+                    mientras no implementes sus controladores, recibirás <strong>404</strong>.</p>
+                <p><strong>Try it out → Execute</strong> envía una petición real a esta aplicación.
+                    Cuando implementes el backend, los POST y PATCH modificarán tus datos de MySQL.</p>
+            </div>
+        </aside>
+
+        <p id="swagger-status" class="status" role="status" aria-live="polite">Cargando documentación…</p>
+        <noscript><p class="status status-error">Activa JavaScript para utilizar Swagger UI. Puedes consultar también el <a href="openapi.json">contrato OpenAPI</a>.</p></noscript>
+        <section id="swagger-ui" aria-label="Documentación interactiva de la API"></section>
+    </main>
+
+    <footer>
+        Java 21 · Spring Boot · MySQL · Un poco de burocracia para lo imposible.
+    </footer>
+</body>
+</html>

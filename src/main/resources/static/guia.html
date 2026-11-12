@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Guía con casos prácticos del Departamento de Anomalías Domésticas: avisos, especialistas, intervenciones y prioridades.">
+    <title>Anomalías Domésticas · Cómo funciona</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="css/guia.css">
+    <script defer src="js/guia.js"></script>
+</head>
+<body>
+    <header class="hero">
+        <div class="container">
+            <nav class="top-nav" aria-label="Navegación principal">
+                <a class="brand" href="./">DAD <span>Oficina de lo imposible</span></a>
+                <a class="nav-link" href="./">Abrir Swagger <span aria-hidden="true">↗</span></a>
+            </nav>
+            <p class="eyebrow">Manual de bienvenida · Expediente 001</p>
+            <h1>Tu nevera predice el futuro.<br><span>Nosotros abrimos un expediente.</span></h1>
+            <p class="hero-description">Una API municipal para registrar fenómenos imposibles, enviar al especialista adecuado y averiguar si la solución fue peor que el problema.</p>
+            <a class="button" href="#recorrido">Entender el proyecto <span aria-hidden="true">↓</span></a>
+            <div class="hero-facts" aria-label="Alcance del proyecto">
+                <span>4 tipos de fenómeno</span><span>4 entidades</span><span>14 operaciones HTTP</span><span>1 plan de guardia</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <aside class="notice">
+            <strong>Esta página explica el proyecto; no ejecuta el backend.</strong>
+            <p>Los controles son ejemplos educativos locales. No envían peticiones ni modifican MySQL. El proyecto incluye la base y la documentación; implementarás tú los endpoints y sus reglas.</p>
+        </aside>
+
+        <nav class="section-nav" aria-label="Secciones de la guía">
+            <a href="#recorrido">El recorrido</a><a href="#modelo">Los datos</a><a href="#cierre">Los desenlaces</a><a href="#prioridad">Las prioridades</a><a href="#guardia">La guardia</a><a href="#practica">Qué practicarás</a>
+        </nav>
+
+        <section id="recorrido" class="section" aria-labelledby="recorrido-title">
+            <p class="eyebrow">01 / Del aviso a la solución</p>
+            <h2 id="recorrido-title">Un caso completo: la nevera de Vera</h2>
+            <p class="section-intro">Cada vez que Vera abre la nevera, aparece un imán con una conversación de mañana. ¿Cómo atiende la oficina este problema?</p>
+            <div class="steps">
+                <article class="step">
+                    <span class="step-number" aria-hidden="true">1</span>
+                    <div>
+                        <h3>Registrar el fenómeno</h3>
+                        <p>La oficina indica vivienda, descripción, disciplina <strong>TEMPORAL</strong> y peligrosidad <strong>3</strong>. El servidor comprueba los datos y asigna fecha actual y estado <span class="badge">REPORTADA</span>.</p>
+                        <details class="request">
+                            <summary>Ver petición · POST /api/anomalias</summary>
+                            <pre><code id="example-create">{
+  "viviendaId": 1,
+  "titulo": "La nevera recuerda el futuro",
+  "descripcion": "Cada apertura deja un mensaje sobre algo que ocurrirá mañana.",
+  "disciplina": "TEMPORAL",
+  "peligrosidad": 3
+}</code></pre>
+                            <button class="copy-button" type="button" data-copy="example-create" hidden>Copiar JSON</button>
+                        </details>
+                        <p class="small">El servidor devuelve <strong>201 Created</strong> con el ID generado. Para continuar este ejemplo con datos ya existentes, usa la anomalía inicial <strong>1</strong>, también temporal y de nivel 3.</p>
+                    </div>
+                </article>
+                <article class="step">
+                    <span class="step-number" aria-hidden="true">2</span>
+                    <div>
+                        <h3>Buscar a alguien que pueda atenderlo</h3>
+                        <p>No basta con encontrar un especialista. Tiene que estar activo, compartir disciplina, tener autorización suficiente y no estar ocupado.</p>
+                        <div class="candidates">
+                            <div class="candidate"><strong>Hora Vuelta</strong><span>Temporal · Nivel 4</span><span class="verdict good">Compatible si está libre</span></div>
+                            <div class="candidate"><strong>Tomás Todavía</strong><span>Temporal · Nivel 1</span><span class="verdict bad">Nivel insuficiente</span></div>
+                            <div class="candidate"><strong>Olivia Susurro</strong><span>Sonora · Nivel 2</span><span class="verdict bad">Disciplina incorrecta</span></div>
+                        </div>
+                        <p class="endpoint"><span>GET</span> /api/especialistas/disponibles?anomaliaId=1</p>
+                    </div>
+                </article>
+                <article class="step">
+                    <span class="step-number" aria-hidden="true">3</span>
+                    <div>
+                        <h3>Iniciar la intervención</h3>
+                        <p>Al asignar la anomalía <strong>1</strong> a la especialista <strong>1</strong>, el fenómeno pasa a <span class="badge">EN_ESTUDIO</span>. Se crea una intervención abierta y Hora queda ocupada.</p>
+                        <details class="request">
+                            <summary>Ver petición · POST /api/intervenciones</summary>
+                            <pre><code id="example-start">{
+  "anomaliaId": 1,
+  "especialistaId": 1
+}</code></pre>
+                            <button class="copy-button" type="button" data-copy="example-start" hidden>Copiar JSON</button>
+                        </details>
+                        <p class="small">No puede haber dos intervenciones abiertas para el mismo especialista ni para la misma anomalía. Si intentas hacerlo, recibirás <strong>409 Conflict</strong>.</p>
+                    </div>
+                </article>
+                <article class="step">
+                    <span class="step-number" aria-hidden="true">4</span>
+                    <div>
+                        <h3>Cerrar y guardar lo que ocurrió</h3>
+                        <p>Hora redacta un informe. El resultado cambia el estado de la anomalía, puede aumentar su peligrosidad y deja libre a la especialista. El intento permanece en el historial.</p>
+                        <a class="text-link" href="#cierre">Explorar los tres desenlaces →</a>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="modelo" class="section" aria-labelledby="modelo-title">
+            <p class="eyebrow">02 / Qué guardamos</p>
+            <h2 id="modelo-title">Cuatro entidades. Un mundo bastante raro.</h2>
+            <div class="cards model-cards">
+                <article class="card"><span class="card-label">VIVIENDA</span><h3>El lugar</h3><p>Dirección, residente, contacto e instrucciones de acceso.</p><p class="example">«No usar el timbre: avisa al vecino de ayer».</p></article>
+                <article class="card"><span class="card-label">ANOMALÍA</span><h3>El problema</h3><p>Fenómeno, disciplina, peligrosidad, estado y fecha de reporte.</p><p class="example">Un dormitorio de nueve metros contiene una estación de tren.</p></article>
+                <article class="card"><span class="card-label">ESPECIALISTA</span><h3>La persona adecuada</h3><p>Nombre, disciplina, nivel de autorización y actividad.</p><p class="example">Una experta en reflejos no arregla problemas temporales.</p></article>
+                <article class="card"><span class="card-label">INTERVENCIÓN</span><h3>El intento</h3><p>Relaciona anomalía y especialista. Guarda inicio, fin, resultado e informe.</p><p class="example">Sin fecha de fin está abierta; al cerrar conserva su historia.</p></article>
+            </div>
+            <p class="relationship">Una vivienda puede tener varias anomalías. Cada anomalía puede acumular varias intervenciones. Cada intervención la realiza un especialista.</p>
+            <div class="disciplines"><span>TEMPORAL · tiempo</span><span>ESPACIAL · distancias</span><span>REFLEJOS · espejos y sombras</span><span>SONORA · sonidos</span></div>
+        </section>
+
+        <section id="cierre" class="section" aria-labelledby="cierre-title">
+            <p class="eyebrow">03 / No todo acaba bien</p>
+            <h2 id="cierre-title">¿Qué pasó al desenchufar la nevera?</h2>
+            <p class="section-intro">Ejemplo independiente: empezamos siempre con una anomalía en estudio, de peligrosidad <strong>3</strong>, y una intervención abierta. Elige un resultado para ver sus consecuencias.</p>
+            <div class="outcome-controls" role="group" aria-label="Resultado del ejemplo de cierre">
+                <button type="button" data-outcome="CONTENIDA" aria-pressed="true" disabled>Se ha contenido</button>
+                <button type="button" data-outcome="SIN_CAMBIOS" aria-pressed="false" disabled>No ha cambiado nada</button>
+                <button type="button" data-outcome="EMPEORADA" aria-pressed="false" disabled>Ha empeorado</button>
+            </div>
+            <noscript><p class="small">Activa JavaScript para cambiar el ejemplo. Los tres resultados se explican debajo.</p></noscript>
+            <div class="outcome-panel" aria-live="polite" aria-atomic="true">
+                <p class="card-label">RESULTADO DEL EJEMPLO</p>
+                <h3 id="outcome-title">La nevera vuelve a obedecer al presente.</h3>
+                <p id="outcome-description">La anomalía queda contenida. El intento se cierra y la especialista puede atender otro caso.</p>
+                <div class="outcome-facts"><span>Estado: <strong id="outcome-state">CONTENIDA</strong></span><span>Peligrosidad: <strong id="outcome-danger">3 → 3</strong></span><span>Especialista: <strong>libre</strong></span></div>
+            </div>
+            <details class="request">
+                <summary>Ver petición · PATCH /api/intervenciones/{id}/cierre</summary>
+                <pre><code id="example-close">{
+  "resultado": "CONTENIDA",
+  "informe": "Se aisló la nevera del próximo jueves. Ya solo conserva comida."
+}</code></pre>
+                <button class="copy-button" type="button" data-copy="example-close" hidden>Copiar JSON</button>
+                <p class="small">Sustituye {id} por el ID que devolvió el inicio de la intervención.</p>
+            </details>
+            <ul class="rule-list"><li><strong>CONTENIDA:</strong> pasa a contenida y mantiene peligrosidad.</li><li><strong>SIN_CAMBIOS:</strong> vuelve a reportada, mantiene peligrosidad y puede atenderse otra vez.</li><li><strong>EMPEORADA:</strong> pasa a desbordada y sube un nivel, sin superar 5.</li><li><strong>Nunca dos cierres:</strong> cerrar otra vez la misma intervención devuelve 409 y no repite los efectos.</li></ul>
+        </section>
+
+        <section id="prioridad" class="section" aria-labelledby="prioridad-title">
+            <p class="eyebrow">04 / Primero lo urgente</p>
+            <h2 id="prioridad-title">No atendemos por orden de llegada.</h2>
+            <p class="section-intro">La prioridad combina peligro, antigüedad y desbordamiento. No se guarda en una tabla: se calcula al consultar.</p>
+            <div class="formula">peligrosidad × 10 <span>+</span> días completos (0–7) × 2 <span>+</span> 20 si está desbordada</div>
+            <form id="priority-form" class="calculator" aria-label="Ejemplo educativo de prioridad">
+                <label>Peligrosidad<input id="priority-danger" name="peligrosidad" type="number" min="1" max="5" step="1" value="3" required></label>
+                <label>Días completos pendiente<input id="priority-days" name="dias" type="number" min="0" max="36500" step="1" value="2" required></label>
+                <label>Estado<select id="priority-state" name="estado"><option value="REPORTADA">Reportada</option><option value="DESBORDADA">Desbordada</option><option value="EN_ESTUDIO">En estudio</option><option value="CONTENIDA">Contenida</option></select></label>
+                <div class="score"><span>Prioridad</span><output id="priority-score" for="priority-danger priority-days priority-state" aria-live="polite">34</output></div>
+                <p id="priority-explanation" class="calculation-detail" aria-live="polite">3 × 10 + 2 × 2 = 34 puntos.</p>
+            </form>
+            <p class="small">Calculadora local, sin llamadas al servidor. Con más de siete días, la antigüedad solo aporta 14 puntos. En estudio o contenida: prioridad 0, porque no está pendiente de asignación. El backend calculará los días completos a partir de fechas UTC, nunca con puntos negativos.</p>
+        </section>
+
+        <section id="guardia" class="section" aria-labelledby="guardia-title">
+            <p class="eyebrow">05 / El reto más allá del CRUD</p>
+            <h2 id="guardia-title">Repartir trabajo sin duplicar personas.</h2>
+            <p class="section-intro"><code>GET /api/guardia/propuesta</code> calcula una sugerencia de guardia. No abre intervenciones ni cambia estados.</p>
+            <div class="guard-grid">
+                <article class="card"><h3>El algoritmo que construirás</h3><ol class="rule-list"><li>Recoger los casos pendientes sin intervención abierta.</li><li>Ordenar por prioridad, después por fecha más antigua y finalmente por ID menor.</li><li>Buscar especialistas activos, compatibles y libres.</li><li>Elegir el nivel suficiente más bajo; en empate, el menor ID.</li><li>Reservar cada persona solo una vez dentro de la propuesta.</li><li>Explicar los casos sin candidato y continuar con los demás.</li></ol></article>
+                <article class="card"><h3>Un reparto de ejemplo</h3><p class="small">Escenario ilustrativo: todos los especialistas indicados están libres.</p><div class="table-scroll"><table><caption>Resultado esperado de la propuesta</caption><thead><tr><th scope="col">Caso</th><th scope="col">Prioridad</th><th scope="col">Asignación</th></tr></thead><tbody><tr><td>Habitación infinita<br><small>Espacial · Nivel 5</small></td><td>70</td><td>Sin candidato: Nicolás solo tiene nivel 3</td></tr><tr><td>Nevera desbordada<br><small>Temporal · Nivel 4</small></td><td>64</td><td>Hora · Nivel 4</td></tr><tr><td>Tostadora que rebobina<br><small>Temporal · Nivel 1</small></td><td>12</td><td>Tomás · Nivel 1</td></tr></tbody></table></div><p class="small">Tomás basta para la tostadora. Así no gastas una especialista de nivel 4 en un caso de nivel 1.</p></article>
+            </div>
+            <div class="cards reason-cards"><article class="card"><h3>No existe nadie cualificado</h3><code>SIN_ESPECIALISTA_COMPATIBLE</code><p>No hay ningún especialista activo de la disciplina con nivel suficiente.</p></article><article class="card"><h3>Existe, pero no está libre</h3><code>SIN_ESPECIALISTA_LIBRE</code><p>Está atendiendo otro caso o ya lo has utilizado en esta propuesta.</p></article></div>
+            <p class="relationship">La propuesta no es una reserva real. Para aceptar una asignación, inicia su intervención: el servidor vuelve a validar la situación actual.</p>
+        </section>
+
+        <section id="practica" class="section" aria-labelledby="practica-title">
+            <p class="eyebrow">06 / Qué aprenderás construyéndolo</p>
+            <h2 id="practica-title">Guardar datos es solo el principio.</h2>
+            <div class="cards learning-cards"><article class="card"><h3>Una API clara</h3><p>DTO de entrada y salida, validaciones, respuestas HTTP y manejo global de errores.</p></article><article class="card"><h3>Consultas útiles</h3><p>Filtros combinados, paginación, historial de intentos y resumen de la ciudad.</p></article><article class="card"><h3>Lógica con consecuencias</h3><p>Condiciones, estados, transacciones, cálculos, listas ordenadas y recursos limitados.</p></article></div>
+            <details class="request"><summary>Ejemplo de búsqueda con filtros y paginación</summary><pre><code id="example-filter">GET /api/anomalias?estado=DESBORDADA&amp;peligrosidadMinima=3&amp;page=0&amp;size=5</code></pre><p>Primera página de hasta cinco anomalías desbordadas con peligrosidad de tres o más. Los filtros se combinan con AND; se ordena por fecha de reporte descendente, no por prioridad.</p><button class="copy-button" type="button" data-copy="example-filter" hidden>Copiar petición</button></details>
+            <div class="architecture" aria-label="Arquitectura por capas"><span>Controller<small>HTTP y validación</small></span><b aria-hidden="true">→</b><span>Service + lógica<small>Reglas y decisiones</small></span><b aria-hidden="true">→</b><span>Repository<small>Consultas JPA</small></span><b aria-hidden="true">→</b><span>MySQL<small>Datos e historial</small></span></div>
+            <div class="next-step"><div><h3>Ahora sí: abre la ventanilla.</h3><p>Explora las peticiones en Swagger y desarrolla cada etapa siguiendo PROYECTO.md.</p></div><a class="button" href="./">Ir a Swagger →</a></div>
+        </section>
+        <p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
+    </main>
+    <footer>Departamento de Anomalías Domésticas · Guía educativa · Ninguna nevera fue desenchufada durante esta demostración.</footer>
+</body>
+</html>
